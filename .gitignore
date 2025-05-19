@@ -39,16 +39,8 @@ out/
 ### VS Code ###
 .vscode/
 
-### Frontend ###
-node_modules
-src/main/resources/static/assets/
-src/main/resources/templates/signup.html
-src/main/resources/templates/payment.html
-src/main/resources/templates/errorPage.html
-src/main/resources/templates/freeSignup.html
-src/main/resources/templates/freeSignupV1.html
-src/main/resources/templates/noCardSignup.html
-coverage
+### Gradle Wrapper ###
+!gradle/wrapper/gradle-wrapper.properties
 
-# Sentry Config File
-.env.sentry-build-plugin
+### Logs ###
+*.log
