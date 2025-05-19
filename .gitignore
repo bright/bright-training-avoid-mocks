@@ -1,0 +1,54 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+/credentials/
+/.metadata/
+/bin/
+
+### Ignore Mac DS_Store Files ###
+*.DS_Store
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Frontend ###
+node_modules
+src/main/resources/static/assets/
+src/main/resources/templates/signup.html
+src/main/resources/templates/payment.html
+src/main/resources/templates/errorPage.html
+src/main/resources/templates/freeSignup.html
+src/main/resources/templates/freeSignupV1.html
+src/main/resources/templates/noCardSignup.html
+coverage
+
+# Sentry Config File
+.env.sentry-build-plugin
