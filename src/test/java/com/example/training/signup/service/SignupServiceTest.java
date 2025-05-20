@@ -1,9 +1,15 @@
 package com.example.training.signup.service;
 
+import com.example.training.signup.helper.SignupHelper;
+import com.example.training.signup.model.AuthUser;
+import com.example.training.signup.model.SessionInfo;
 import com.example.training.signup.model.SignupRequest;
 import com.example.training.signup.model.SignupResponse;
+import com.example.training.signup.model.SocialLoginSignup;
 import com.example.training.signup.model.User;
 import com.example.training.signup.repository.UserRepository;
+import com.example.training.signup.sociallogin.AuthType;
+import com.example.training.signup.sociallogin.GoogleAuth;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,12 +23,17 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -36,6 +47,12 @@ class SignupServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private SignupHelper signupHelper;
+
+    @Mock
+    private GoogleAuth googleAuth;
 
     @Mock
     private HttpServletRequest request;
@@ -57,6 +74,11 @@ class SignupServiceTest {
 
     private SignupRequest validSignupRequest;
 
+    private AuthUser authUser;
+    private SessionInfo sessionInfo;
+    private Map<String, Object> additionalInfo;
+    private SocialLoginSignup socialLoginSignup;
+
     @BeforeEach
     void setUp() {
         validSignupRequest = new SignupRequest();
@@ -68,6 +90,25 @@ class SignupServiceTest {
         validSignupRequest.setConfirmPassword("password123");
         validSignupRequest.setCountryCode("US");
         validSignupRequest.setPhoneNumber("1234567890");
+
+        authUser = new AuthUser();
+        authUser.setEmail("social@example.com");
+        authUser.setFirstName("Social");
+        authUser.setLastName("User");
+        authUser.setAccessToken("access_token_123");
+        authUser.setAuthType("GOOGLE");
+
+        sessionInfo = new SessionInfo();
+
+        additionalInfo = new HashMap<>();
+        additionalInfo.put("signupType", "free");
+        additionalInfo.put("authType", AuthType.GOOGLE);
+
+        socialLoginSignup = new SocialLoginSignup();
+        socialLoginSignup.setAccessToken("access_token_123");
+        socialLoginSignup.setEmail("social@example.com");
+        socialLoginSignup.setFirstName("Social");
+        socialLoginSignup.setLastName("User");
     }
 
     @Test
@@ -241,5 +282,151 @@ class SignupServiceTest {
 
         // Assert
         assertFalse(isValid);
+    }
+
+    @Test
+    @DisplayName("processSocialLoginReq should process social login and return dashboard URL")
+    void processSocialLoginReq_ShouldProcessSocialLoginAndReturnDashboardURL() {
+        // Arrange
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("sessionInfo")).thenReturn(sessionInfo);
+        doNothing().when(signupHelper).processSocialLoginReq(
+                eq(request), eq(authUser), eq(sessionInfo), eq(session), eq(additionalInfo));
+        sessionInfo.setAuthorized(true);
+
+        // Act
+        String result = signupService.processSocialLoginReq(authUser, request, additionalInfo, response);
+
+        // Assert
+        assertEquals("/dashboard", result);
+
+        // Verify interactions with mocks
+        verify(request).getSession(false);
+        verify(session).getAttribute("sessionInfo");
+        verify(signupHelper).processSocialLoginReq(request, authUser, sessionInfo, session, additionalInfo);
+    }
+
+    @Test
+    @DisplayName("processSocialLoginReq should return dashboard URL when session does not exist")
+    void processSocialLoginReq_WhenSessionDoesNotExist_ShouldReturnDashboardURL() {
+        // Arrange
+        when(request.getSession(false)).thenReturn(null);
+
+        // Act
+        String result = signupService.processSocialLoginReq(authUser, request, additionalInfo, response);
+
+        // Assert
+        assertEquals("/dashboard", result);
+
+        // Verify interactions with mocks
+        verify(request).getSession(false);
+        verify(signupHelper, never()).processSocialLoginReq(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("processSocialLoginFreeSignup should process free signup and return redirect URL")
+    void processSocialLoginFreeSignup_ShouldProcessFreeSignupAndReturnRedirectURL() {
+        // Arrange
+        User user = new User();
+        user.setEmail("social@example.com");
+        user.setFirstName("Social");
+        user.setLastName("User");
+        sessionInfo.setUser(user);
+
+        // Create a spy of the signupService to mock the processSignup method
+        SignupService spySignupService = spy(signupService);
+
+        // Mock the processSignup method to return a successful response
+        SignupResponse successResponse = SignupResponse.success("user123", "/dashboard");
+        doReturn(successResponse).when(spySignupService).processSignup(any(SignupRequest.class), eq(request), eq(response));
+
+        // Act
+        String result = spySignupService.processSocialLoginFreeSignup(request, response, sessionInfo);
+
+        // Assert
+        assertEquals("redirect:/dashboard", result);
+
+        // Verify interactions with mocks
+        verify(request).setAttribute("isSocialLoginFlow", true);
+        verify(spySignupService).processSignup(any(SignupRequest.class), eq(request), eq(response));
+    }
+
+    @Test
+    @DisplayName("processSocialLoginSignup should process social login signup and return success response")
+    void processSocialLoginSignup_ShouldProcessSocialLoginSignupAndReturnSuccessResponse() {
+        // Arrange
+        when(signupHelper.getUserByAccessToken(AuthType.GOOGLE, socialLoginSignup)).thenReturn(authUser);
+        when(signupHelper.getSignupDetails(authUser, socialLoginSignup)).thenReturn(validSignupRequest);
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User savedUser = invocation.getArgument(0);
+            savedUser.setId("user123");
+            return savedUser;
+        });
+
+        // Act
+        ResponseEntity<SignupResponse> responseEntity = signupService.processSocialLoginSignup("GOOGLE", socialLoginSignup);
+
+        // Assert
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        SignupResponse signupResponse = responseEntity.getBody();
+        assertNotNull(signupResponse);
+        assertTrue(signupResponse.isSuccess());
+        assertEquals("user123", signupResponse.getUserId());
+        assertEquals("/dashboard", signupResponse.getRedirectUrl());
+
+        // Verify interactions with mocks
+        verify(signupHelper).getUserByAccessToken(AuthType.GOOGLE, socialLoginSignup);
+        verify(signupHelper).getSignupDetails(authUser, socialLoginSignup);
+        verify(userRepository).existsByEmail(anyString());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("processSocialLoginSignup should return failure response when user already exists")
+    void processSocialLoginSignup_WhenUserAlreadyExists_ShouldReturnFailureResponse() {
+        // Arrange
+        when(signupHelper.getUserByAccessToken(AuthType.GOOGLE, socialLoginSignup)).thenReturn(authUser);
+        when(signupHelper.getSignupDetails(authUser, socialLoginSignup)).thenReturn(validSignupRequest);
+        when(userRepository.existsByEmail(anyString())).thenReturn(true);
+
+        // Act
+        ResponseEntity<SignupResponse> responseEntity = signupService.processSocialLoginSignup("GOOGLE", socialLoginSignup);
+
+        // Assert
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        SignupResponse signupResponse = responseEntity.getBody();
+        assertNotNull(signupResponse);
+        assertFalse(signupResponse.isSuccess());
+        assertEquals("User with this email already exists", signupResponse.getMessage());
+
+        // Verify interactions with mocks
+        verify(signupHelper).getUserByAccessToken(AuthType.GOOGLE, socialLoginSignup);
+        verify(signupHelper).getSignupDetails(authUser, socialLoginSignup);
+        verify(userRepository).existsByEmail(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("processSocialLoginSignup should return error response when auth user is null")
+    void processSocialLoginSignup_WhenAuthUserIsNull_ShouldReturnErrorResponse() {
+        // Arrange
+        when(signupHelper.getUserByAccessToken(AuthType.GOOGLE, socialLoginSignup)).thenReturn(null);
+
+        // Act
+        ResponseEntity<SignupResponse> responseEntity = signupService.processSocialLoginSignup("GOOGLE", socialLoginSignup);
+
+        // Assert
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode());
+        SignupResponse signupResponse = responseEntity.getBody();
+        assertNotNull(signupResponse);
+        assertFalse(signupResponse.isSuccess());
+        assertEquals("Auth User is null or doesn't have an email address", signupResponse.getMessage());
+
+        // Verify interactions with mocks
+        verify(signupHelper).getUserByAccessToken(AuthType.GOOGLE, socialLoginSignup);
+        verify(signupHelper, never()).getSignupDetails(any(), any());
+        verify(userRepository, never()).existsByEmail(anyString());
+        verify(userRepository, never()).save(any(User.class));
     }
 }
