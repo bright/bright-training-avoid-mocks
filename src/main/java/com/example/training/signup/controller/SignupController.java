@@ -16,18 +16,22 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * Controller for handling user signup requests.
+ * 
+ * PROBLEM: This controller passes HttpServletRequest and HttpServletResponse directly
+ * to the service layer, which makes the service layer tightly coupled to the web layer
+ * and difficult to test.
  */
 @Controller
 @RequestMapping("/signup")
 public class SignupController {
-    
+
     private final SignupService signupService;
-    
+
     @Autowired
     public SignupController(SignupService signupService) {
         this.signupService = signupService;
     }
-    
+
     /**
      * Displays the signup form.
      */
@@ -36,7 +40,7 @@ public class SignupController {
         model.addAttribute("signupRequest", new SignupRequest());
         return "signup/form";
     }
-    
+
     /**
      * Processes the signup form submission.
      * 
@@ -61,7 +65,7 @@ public class SignupController {
             return "redirect:/signup";
         }
     }
-    
+
     /**
      * Alternative endpoint that directly passes the HttpServletRequest and HttpServletResponse
      * to the service layer without extracting the data first.

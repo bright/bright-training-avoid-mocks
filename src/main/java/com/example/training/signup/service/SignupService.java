@@ -12,7 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * which makes it tightly coupled to the web layer and difficult to test.
  */
 public interface SignupService {
-    
+
     /**
      * Processes a signup request.
      * 
@@ -21,7 +21,7 @@ public interface SignupService {
      * @return A SignupResponse object with the result of the signup operation
      */
     SignupResponse processSignup(HttpServletRequest request, HttpServletResponse response);
-    
+
     /**
      * Processes a signup request from the provided SignupRequest object.
      * 
@@ -31,7 +31,7 @@ public interface SignupService {
      * @return A SignupResponse object with the result of the signup operation
      */
     SignupResponse processSignup(SignupRequest signupRequest, HttpServletRequest request, HttpServletResponse response);
-    
+
     /**
      * Validates a signup request.
      * 
