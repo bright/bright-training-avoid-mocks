@@ -22,11 +22,12 @@ This repository is organized into branches that demonstrate the progression from
 ## Key Concepts
 
 ### Testing Without Mocks
-Based on James Shore's "Testing Without Mocks: A Pattern Language", this approach focuses on:
+Based on James Shore's ["Testing Without Mocks: A Pattern Language"](https://www.jamesshore.com/v2/projects/nullables/testing-without-mocks), this approach focuses on:
 - Using real objects instead of mocks when possible
 - Creating "Nullables" or "Fakes" for infrastructure dependencies
 - Using "Output Trackers" to verify behavior without mocks
 - Structuring code to be more testable without mocks
+
 
 ### Improved HTTP Request Handling
 - Abstracting HTTP request/response details behind interfaces
