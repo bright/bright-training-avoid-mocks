@@ -26,13 +26,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * Test class for SignupServiceImpl.
+ * Test class for SignupService.
  * 
  * PROBLEM: This test class demonstrates the abuse of mocks, with excessive mocking
  * and verification of implementation details rather than behavior.
  */
 @ExtendWith(MockitoExtension.class)
-class SignupServiceImplTest {
+class SignupServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -47,7 +47,7 @@ class SignupServiceImplTest {
     private HttpSession session;
 
     @InjectMocks
-    private SignupServiceImpl signupService;
+    private SignupService signupService;
 
     @Captor
     private ArgumentCaptor<User> userCaptor;
