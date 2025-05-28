@@ -54,21 +54,15 @@ class SignupServiceTest {
     @MockBean
     private SignupHelper signupHelper;
 
-    @MockBean
-    private GoogleAuth googleAuth;
-
-    private HttpServletRequest request;
-    private HttpServletResponse response;
-    private HttpSession session;
+    private MockHttpServletRequest request;
+    private MockHttpServletResponse response;
+    private MockHttpSession session;
 
     @Autowired
     private SignupService signupService;
 
     @Captor
     private ArgumentCaptor<User> userCaptor;
-
-    @Captor
-    private ArgumentCaptor<Cookie> cookieCaptor;
 
     private SignupRequest validSignupRequest;
 
@@ -114,8 +108,8 @@ class SignupServiceTest {
         response = new MockHttpServletResponse();
 
         // Set up common request properties
-        ((MockHttpServletRequest) request).setRemoteAddr("127.0.0.1");
-        ((MockHttpServletRequest) request).setSession(session);
+        request.setRemoteAddr("127.0.0.1");
+        request.setSession(session);
     }
 
     @Test
@@ -141,7 +135,7 @@ class SignupServiceTest {
         assertNotNull(session.getAttribute("userId"));
 
         // Verify cookie was added
-        Cookie[] cookies = ((MockHttpServletResponse) this.response).getCookies();
+        Cookie[] cookies = this.response.getCookies();
         assertNotNull(cookies);
         assertTrue(cookies.length > 0);
         Cookie cookie = cookies[0];
@@ -179,7 +173,7 @@ class SignupServiceTest {
         assertNull(session.getAttribute("userId"));
 
         // Verify no cookies were added
-        Cookie[] cookies = ((MockHttpServletResponse) this.response).getCookies();
+        Cookie[] cookies = this.response.getCookies();
         assertTrue(cookies == null || cookies.length == 0);
     }
 
@@ -204,7 +198,7 @@ class SignupServiceTest {
         assertNull(session.getAttribute("userId"));
 
         // Verify no cookies were added
-        Cookie[] cookies = ((MockHttpServletResponse) this.response).getCookies();
+        Cookie[] cookies = this.response.getCookies();
         assertTrue(cookies == null || cookies.length == 0);
     }
 
@@ -302,26 +296,41 @@ class SignupServiceTest {
         user.setEmail("social@example.com");
         user.setFirstName("Social");
         user.setLastName("User");
+        user.setCompanyName("Social Company");
         sessionInfo.setUser(user);
 
-        // Create a spy of the signupService to mock the processSignup method
-        SignupService spySignupService = spy(signupService);
-
-        // Mock the processSignup method to return a successful response
-        SignupResponse successResponse = SignupResponse.success("user123", "/dashboard");
-        doReturn(successResponse).when(spySignupService).processSignup(any(SignupRequest.class), eq(request), eq(response));
+        // Setup userRepository to not find an existing user and to save the new user
+        when(userRepository.existsByEmail("social@example.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User savedUser = invocation.getArgument(0);
+            savedUser.setId("user123");
+            return savedUser;
+        });
 
         // Act
-        String result = spySignupService.processSocialLoginFreeSignup(request, response, sessionInfo);
+        String result = signupService.processSocialLoginFreeSignup(request, response, sessionInfo);
 
         // Assert
         assertEquals("redirect:/dashboard", result);
 
         // Verify request attribute was set
-        assertEquals(true, ((MockHttpServletRequest) request).getAttribute("isSocialLoginFlow"));
+        assertEquals(true, request.getAttribute("isSocialLoginFlow"));
 
-        // Verify processSignup was called
-        verify(spySignupService).processSignup(any(SignupRequest.class), eq(request), eq(response));
+        // Verify interactions with userRepository
+        verify(userRepository).existsByEmail("social@example.com");
+        verify(userRepository).save(any(User.class));
+
+        // Verify session attribute was set
+        assertNotNull(session.getAttribute("userId"));
+        assertEquals("user123", session.getAttribute("userId"));
+
+        // Verify cookie was added
+        Cookie[] cookies = response.getCookies();
+        assertNotNull(cookies);
+        assertTrue(cookies.length > 0);
+        Cookie cookie = cookies[0];
+        assertEquals("user_email", cookie.getName());
+        assertEquals("social@example.com", cookie.getValue());
     }
 
     @Test
