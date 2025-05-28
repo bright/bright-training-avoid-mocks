@@ -64,7 +64,7 @@ public class SignupService {
         Boolean isSocialLoginFlow = (Boolean) request.getAttribute(IS_SOCIAL_LOGIN_FLOW);
 
         // Validate the signup request
-        if (!signupHelper.validateSignupRequest(signupRequest, isSocialLoginFlow != null && isSocialLoginFlow)) {
+        if (!signupRequest.isValid(isSocialLoginFlow != null && isSocialLoginFlow)) {
             return SignupResponse.failure("Invalid signup request");
         }
 
