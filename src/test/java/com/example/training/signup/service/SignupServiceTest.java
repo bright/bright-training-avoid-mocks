@@ -114,16 +114,16 @@ class SignupServiceTest {
     @Test
     @DisplayName("processSignup should return success response when signup is valid")
     void processSignup_WithValidRequest_ShouldReturnSuccessResponse() {
-        // Arrange
+        // given
         when(request.getSession(anyBoolean())).thenReturn(session);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
+        // when
         SignupResponse response = signupService.processSignup(validSignupRequest, request, this.response);
 
-        // Assert
+        // then
         assertTrue(response.isSuccess());
         assertNotNull(response.getUserId());
         assertEquals("/dashboard", response.getRedirectUrl());

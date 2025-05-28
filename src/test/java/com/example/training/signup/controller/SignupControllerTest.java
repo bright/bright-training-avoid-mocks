@@ -51,8 +51,10 @@ class SignupControllerTest {
     void showSignupForm_ShouldAddSignupRequestToModelAndReturnFormView() throws Exception {
         // given
 
-        // when & then
+        // when
         mockMvc.perform(get("/signup"))
+
+        // then
                 .andExpect(status().isOk())
                 .andExpect(view().name("signup/form"))
                 .andExpect(model().attributeExists("signupRequest"));
@@ -66,13 +68,15 @@ class SignupControllerTest {
         when(signupService.processSignup(any(SignupRequest.class), any(HttpServletRequest.class), any(HttpServletResponse.class)))
                 .thenReturn(signupResponse);
 
-        // when & then
+        // when
         mockMvc.perform(post("/signup")
                 .param("email", signupRequest.getEmail())
                 .param("firstName", signupRequest.getFirstName())
                 .param("lastName", signupRequest.getLastName())
                 .param("password", signupRequest.getPassword())
                 .param("confirmPassword", signupRequest.getConfirmPassword()))
+
+        // then
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/dashboard"))
                 .andExpect(flash().attribute("message", "Signup successful!"));
@@ -87,13 +91,15 @@ class SignupControllerTest {
         when(signupService.processSignup(any(SignupRequest.class), any(HttpServletRequest.class), any(HttpServletResponse.class)))
                 .thenReturn(signupResponse);
 
-        // when & then
+        // when
         mockMvc.perform(post("/signup")
                 .param("email", signupRequest.getEmail())
                 .param("firstName", signupRequest.getFirstName())
                 .param("lastName", signupRequest.getLastName())
                 .param("password", signupRequest.getPassword())
                 .param("confirmPassword", signupRequest.getConfirmPassword()))
+
+        // then
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/signup"))
                 .andExpect(flash().attribute("error", errorMessage))
