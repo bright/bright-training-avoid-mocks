@@ -1,7 +1,6 @@
 package com.example.training.signup.repository;
 
 import com.example.training.signup.model.User;
-import org.springframework.stereotype.Repository;
 
 import java.util.Map;
 import java.util.Optional;
@@ -11,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * In-memory implementation of the UserRepository interface.
  * This is a simple implementation for demonstration purposes.
  */
-@Repository
 public class InMemoryUserRepository implements UserRepository {
     
     private final Map<String, User> users = new ConcurrentHashMap<>();
