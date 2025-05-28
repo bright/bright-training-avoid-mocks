@@ -8,44 +8,31 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.ui.Model;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Test class for SignupController.
+ * Test class for SignupController using @WebMvcTest.
  * 
- * PROBLEM: This test class demonstrates the abuse of mocks, with excessive mocking
- * and verification of implementation details rather than behavior.
+ * This test class demonstrates the proper way to test Spring MVC controllers
+ * using Spring's testing support rather than excessive mocking.
  */
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(SignupController.class)
 class SignupControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
     private SignupService signupService;
-
-    @Mock
-    private Model model;
-
-    @Mock
-    private HttpServletRequest request;
-
-    @Mock
-    private HttpServletResponse response;
-
-    @Mock
-    private RedirectAttributes redirectAttributes;
-
-    @InjectMocks
-    private SignupController signupController;
 
     private SignupRequest signupRequest;
 
@@ -61,56 +48,56 @@ class SignupControllerTest {
 
     @Test
     @DisplayName("showSignupForm should add signupRequest to model and return form view")
-    void showSignupForm_ShouldAddSignupRequestToModelAndReturnFormView() {
-        // Act
-        String viewName = signupController.showSignupForm(model);
+    void showSignupForm_ShouldAddSignupRequestToModelAndReturnFormView() throws Exception {
+        // given
 
-        // Assert
-        assertEquals("signup/form", viewName);
-
-        // Verify interactions with mocks
-        verify(model).addAttribute(eq("signupRequest"), any(SignupRequest.class));
+        // when & then
+        mockMvc.perform(get("/signup"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("signup/form"))
+                .andExpect(model().attributeExists("signupRequest"));
     }
 
     @Test
     @DisplayName("processSignup should redirect to success URL when signup is successful")
-    void processSignup_WhenSuccessful_ShouldRedirectToSuccessUrl() {
-        // Arrange
+    void processSignup_WhenSuccessful_ShouldRedirectToSuccessUrl() throws Exception {
+        // given
         SignupResponse signupResponse = SignupResponse.success("user123", "/dashboard");
         when(signupService.processSignup(any(SignupRequest.class), any(HttpServletRequest.class), any(HttpServletResponse.class)))
                 .thenReturn(signupResponse);
 
-        // Act
-        String viewName = signupController.processSignup(signupRequest, request, response, redirectAttributes);
-
-        // Assert
-        assertEquals("redirect:/dashboard", viewName);
-
-        // Verify interactions with mocks
-        verify(signupService).processSignup(signupRequest, request, response);
-        verify(redirectAttributes).addFlashAttribute("message", "Signup successful!");
-        verifyNoMoreInteractions(redirectAttributes);
+        // when & then
+        mockMvc.perform(post("/signup")
+                .param("email", signupRequest.getEmail())
+                .param("firstName", signupRequest.getFirstName())
+                .param("lastName", signupRequest.getLastName())
+                .param("password", signupRequest.getPassword())
+                .param("confirmPassword", signupRequest.getConfirmPassword()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/dashboard"))
+                .andExpect(flash().attribute("message", "Signup successful!"));
     }
 
     @Test
     @DisplayName("processSignup should redirect to signup form with error when signup fails")
-    void processSignup_WhenFails_ShouldRedirectToSignupFormWithError() {
-        // Arrange
-        SignupResponse signupResponse = SignupResponse.failure("Invalid email format");
+    void processSignup_WhenFails_ShouldRedirectToSignupFormWithError() throws Exception {
+        // given
+        String errorMessage = "Invalid email format";
+        SignupResponse signupResponse = SignupResponse.failure(errorMessage);
         when(signupService.processSignup(any(SignupRequest.class), any(HttpServletRequest.class), any(HttpServletResponse.class)))
                 .thenReturn(signupResponse);
 
-        // Act
-        String viewName = signupController.processSignup(signupRequest, request, response, redirectAttributes);
-
-        // Assert
-        assertEquals("redirect:/signup", viewName);
-
-        // Verify interactions with mocks
-        verify(signupService).processSignup(signupRequest, request, response);
-        verify(redirectAttributes).addFlashAttribute("error", "Invalid email format");
-        verify(redirectAttributes).addFlashAttribute("signupRequest", signupRequest);
-        verifyNoMoreInteractions(redirectAttributes);
+        // when & then
+        mockMvc.perform(post("/signup")
+                .param("email", signupRequest.getEmail())
+                .param("firstName", signupRequest.getFirstName())
+                .param("lastName", signupRequest.getLastName())
+                .param("password", signupRequest.getPassword())
+                .param("confirmPassword", signupRequest.getConfirmPassword()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/signup"))
+                .andExpect(flash().attribute("error", errorMessage))
+                .andExpect(flash().attributeExists("signupRequest"));
     }
 
 }
