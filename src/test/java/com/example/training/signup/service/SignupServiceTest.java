@@ -17,12 +17,15 @@ import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -39,31 +42,26 @@ import static org.mockito.Mockito.*;
 /**
  * Test class for SignupService.
  * 
- * PROBLEM: This test class demonstrates the abuse of mocks, with excessive mocking
- * and verification of implementation details rather than behavior.
+ * This test class uses @SpringBootTest to load the application context
+ * and @MockBean to mock the dependencies of SignupService.
  */
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
 class SignupServiceTest {
 
-    @Mock
+    @MockBean
     private UserRepository userRepository;
 
-    @Mock
+    @MockBean
     private SignupHelper signupHelper;
 
-    @Mock
+    @MockBean
     private GoogleAuth googleAuth;
 
-    @Mock
     private HttpServletRequest request;
-
-    @Mock
     private HttpServletResponse response;
-
-    @Mock
     private HttpSession session;
 
-    @InjectMocks
+    @Autowired
     private SignupService signupService;
 
     @Captor
@@ -109,14 +107,21 @@ class SignupServiceTest {
         socialLoginSignup.setEmail("social@example.com");
         socialLoginSignup.setFirstName("Social");
         socialLoginSignup.setLastName("User");
+
+        // Create mock HTTP objects
+        session = new MockHttpSession();
+        request = new MockHttpServletRequest();
+        response = new MockHttpServletResponse();
+
+        // Set up common request properties
+        ((MockHttpServletRequest) request).setRemoteAddr("127.0.0.1");
+        ((MockHttpServletRequest) request).setSession(session);
     }
 
     @Test
     @DisplayName("processSignup should return success response when signup is valid")
     void processSignup_WithValidRequest_ShouldReturnSuccessResponse() {
         // given
-        when(request.getSession(anyBoolean())).thenReturn(session);
-        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -131,21 +136,26 @@ class SignupServiceTest {
         // Verify interactions with mocks
         verify(userRepository).existsByEmail("test@example.com");
         verify(userRepository).save(userCaptor.capture());
-        verify(session).setAttribute(eq("userId"), anyString());
-        verify(this.response).addCookie(cookieCaptor.capture());
 
-        // Verify captured arguments
-        User savedUser = userCaptor.getValue();
-        assertEquals("test@example.com", savedUser.getEmail());
-        assertEquals("Test", savedUser.getFirstName());
-        assertEquals("127.0.0.1", savedUser.getIpAddress());
+        // Verify session attribute was set
+        assertNotNull(session.getAttribute("userId"));
 
-        Cookie cookie = cookieCaptor.getValue();
+        // Verify cookie was added
+        Cookie[] cookies = ((MockHttpServletResponse) this.response).getCookies();
+        assertNotNull(cookies);
+        assertTrue(cookies.length > 0);
+        Cookie cookie = cookies[0];
         assertEquals("user_email", cookie.getName());
         assertEquals("test@example.com", cookie.getValue());
         assertEquals(3600, cookie.getMaxAge());
         assertEquals("/", cookie.getPath());
         assertTrue(cookie.isHttpOnly());
+
+        // Verify captured user
+        User savedUser = userCaptor.getValue();
+        assertEquals("test@example.com", savedUser.getEmail());
+        assertEquals("Test", savedUser.getFirstName());
+        assertEquals("127.0.0.1", savedUser.getIpAddress());
     }
 
     @Test
@@ -164,8 +174,13 @@ class SignupServiceTest {
         // Verify interactions with mocks
         verify(userRepository).existsByEmail("test@example.com");
         verify(userRepository, never()).save(any(User.class));
-        verify(session, never()).setAttribute(anyString(), any());
-        verify(this.response, never()).addCookie(any(Cookie.class));
+
+        // Verify session attribute was not set
+        assertNull(session.getAttribute("userId"));
+
+        // Verify no cookies were added
+        Cookie[] cookies = ((MockHttpServletResponse) this.response).getCookies();
+        assertTrue(cookies == null || cookies.length == 0);
     }
 
     @Test
@@ -184,8 +199,13 @@ class SignupServiceTest {
         // Verify interactions with mocks
         verify(userRepository, never()).existsByEmail(anyString());
         verify(userRepository, never()).save(any(User.class));
-        verify(session, never()).setAttribute(anyString(), any());
-        verify(this.response, never()).addCookie(any(Cookie.class));
+
+        // Verify session attribute was not set
+        assertNull(session.getAttribute("userId"));
+
+        // Verify no cookies were added
+        Cookie[] cookies = ((MockHttpServletResponse) this.response).getCookies();
+        assertTrue(cookies == null || cookies.length == 0);
     }
 
 
@@ -242,8 +262,7 @@ class SignupServiceTest {
     @DisplayName("processSocialLoginReq should process social login and return dashboard URL")
     void processSocialLoginReq_ShouldProcessSocialLoginAndReturnDashboardURL() {
         // Arrange
-        when(request.getSession(false)).thenReturn(session);
-        when(session.getAttribute("sessionInfo")).thenReturn(sessionInfo);
+        session.setAttribute("sessionInfo", sessionInfo);
         doNothing().when(signupHelper).processSocialLoginReq(
                 eq(request), eq(authUser), eq(sessionInfo), eq(session), eq(additionalInfo));
         sessionInfo.setAuthorized(true);
@@ -255,8 +274,6 @@ class SignupServiceTest {
         assertEquals("/dashboard", result);
 
         // Verify interactions with mocks
-        verify(request).getSession(false);
-        verify(session).getAttribute("sessionInfo");
         verify(signupHelper).processSocialLoginReq(request, authUser, sessionInfo, session, additionalInfo);
     }
 
@@ -264,16 +281,16 @@ class SignupServiceTest {
     @DisplayName("processSocialLoginReq should return dashboard URL when session does not exist")
     void processSocialLoginReq_WhenSessionDoesNotExist_ShouldReturnDashboardURL() {
         // Arrange
-        when(request.getSession(false)).thenReturn(null);
+        // Create a new request without a session
+        MockHttpServletRequest requestWithoutSession = new MockHttpServletRequest();
 
         // Act
-        String result = signupService.processSocialLoginReq(authUser, request, additionalInfo, response);
+        String result = signupService.processSocialLoginReq(authUser, requestWithoutSession, additionalInfo, response);
 
         // Assert
         assertEquals("/dashboard", result);
 
         // Verify interactions with mocks
-        verify(request).getSession(false);
         verify(signupHelper, never()).processSocialLoginReq(any(), any(), any(), any(), any());
     }
 
@@ -300,8 +317,10 @@ class SignupServiceTest {
         // Assert
         assertEquals("redirect:/dashboard", result);
 
-        // Verify interactions with mocks
-        verify(request).setAttribute("isSocialLoginFlow", true);
+        // Verify request attribute was set
+        assertEquals(true, ((MockHttpServletRequest) request).getAttribute("isSocialLoginFlow"));
+
+        // Verify processSignup was called
         verify(spySignupService).processSignup(any(SignupRequest.class), eq(request), eq(response));
     }
 
