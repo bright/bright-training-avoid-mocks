@@ -203,8 +203,8 @@ public class SignupService {
         }
     }
 
-
     private User createUserFromRequest(SignupRequest signupRequest, HttpServletRequest request) {
+        // see SignupHelper.getSignupWithLocation https://github.com/Adaptavant/AW-Signup/blob/3a79cfaba38351147c1ca96ed06f3e65c0376ba3/src/main/java/com/awsignup/api/helper/SignupHelper.java#L237-L237
         User user = new User();
         user.setEmail(signupRequest.getEmail());
         user.setFirstName(signupRequest.getFirstName());
