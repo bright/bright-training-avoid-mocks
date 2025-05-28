@@ -7,6 +7,26 @@ import java.util.UUID;
  * This is a simple model class for demonstration purposes.
  */
 public class User {
+
+    /**
+     * Creates a User from a SignupRequest and IP address.
+     * 
+     * @param signupRequest The signup request containing user information
+     * @param ipAddress The IP address of the user
+     * @return A new User instance
+     */
+    public static User fromSignupRequest(SignupRequest signupRequest, String ipAddress) {
+        User user = new User();
+        user.setEmail(signupRequest.getEmail());
+        user.setFirstName(signupRequest.getFirstName());
+        user.setLastName(signupRequest.getLastName());
+        user.setCompanyName(signupRequest.getCompanyName());
+        user.setPassword(signupRequest.getPassword()); // In a real app, this would be hashed
+        user.setIpAddress(ipAddress);
+        user.setCountryCode(signupRequest.getCountryCode());
+        user.setPhoneNumber(signupRequest.getPhoneNumber());
+        return user;
+    }
     private String id;
     private String email;
     private String firstName;

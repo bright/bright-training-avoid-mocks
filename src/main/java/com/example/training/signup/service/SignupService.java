@@ -74,7 +74,7 @@ public class SignupService {
         }
 
         // Create and save the user
-        User user = createUserFromRequest(signupRequest, request);
+        User user = User.fromSignupRequest(signupRequest, request.getRemoteAddr());
         userRepository.save(user);
 
         // Set user in session
@@ -203,19 +203,6 @@ public class SignupService {
         }
     }
 
-    private User createUserFromRequest(SignupRequest signupRequest, HttpServletRequest request) {
-        // see SignupHelper.getSignupWithLocation https://github.com/Adaptavant/AW-Signup/blob/3a79cfaba38351147c1ca96ed06f3e65c0376ba3/src/main/java/com/awsignup/api/helper/SignupHelper.java#L237-L237
-        User user = new User();
-        user.setEmail(signupRequest.getEmail());
-        user.setFirstName(signupRequest.getFirstName());
-        user.setLastName(signupRequest.getLastName());
-        user.setCompanyName(signupRequest.getCompanyName());
-        user.setPassword(signupRequest.getPassword()); // In a real app, this would be hashed
-        user.setIpAddress(request.getRemoteAddr());
-        user.setCountryCode(signupRequest.getCountryCode());
-        user.setPhoneNumber(signupRequest.getPhoneNumber());
-        return user;
-    }
 
     private Cookie createUserCookie(User user) {
         Cookie cookie = new Cookie("user_email", user.getEmail());
