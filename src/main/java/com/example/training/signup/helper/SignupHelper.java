@@ -27,16 +27,16 @@ public class SignupHelper {
     private static final String SESSION_INFO = "sessionInfo";
     private static final String SOCIAL_LOGIN_TOKEN = "socialLoginToken";
     private static final String REFRESH_TOKEN = "refreshToken";
-    
+
     private final UserRepository userRepository;
     private final GoogleAuth googleAuth;
-    
+
     @Autowired
     public SignupHelper(UserRepository userRepository, GoogleAuth googleAuth) {
         this.userRepository = userRepository;
         this.googleAuth = googleAuth;
     }
-    
+
     /**
      * Processes a social login request.
      * 
@@ -52,27 +52,27 @@ public class SignupHelper {
             SessionInfo sessionInfo,
             HttpSession session,
             Map<String, Object> additionalInfo) {
-        
+
         logger.info("Processing social login for email: {}", authUser.getEmail());
-        
+
         // Set user information in session info
         User user = new User();
         user.setEmail(authUser.getEmail());
         user.setFirstName(authUser.getFirstName());
         user.setLastName(authUser.getLastName());
         sessionInfo.setUser(user);
-        
+
         // Set auth type
         sessionInfo.setAuthType(authUser.getAuthType());
-        
+
         // Check if user already exists
         sessionInfo.setAuthorized(!userRepository.existsByEmail(authUser.getEmail()));
-        
+
         // Store tokens in session
         if ("GOOGLE".equals(authUser.getAuthType())) {
             session.setAttribute(REFRESH_TOKEN, googleAuth.getRefreshToken());
         }
-        
+
         session.setAttribute(SOCIAL_LOGIN_TOKEN, authUser.getAccessToken());
         session.setAttribute(SESSION_INFO, sessionInfo);
     }
@@ -96,7 +96,7 @@ public class SignupHelper {
             return null;
         }
     }
-    
+
     /**
      * Gets signup details from an authenticated user.
      * 
@@ -112,7 +112,7 @@ public class SignupHelper {
         signupRequest.setCompanyName(determineCompanyName(socialLoginSignup.getFirstName(), authUser.getEmail()));
         return signupRequest;
     }
-    
+
     private String getUserName(String firstName, String email) {
         try {
             return firstName != null && !firstName.isEmpty() ? firstName : email.split("@")[0];
@@ -121,7 +121,7 @@ public class SignupHelper {
             return "";
         }
     }
-    
+
     private String determineCompanyName(String firstName, String email) {
         try {
             return firstName != null && !firstName.isEmpty() ? firstName : email.split("@")[0];
@@ -129,5 +129,44 @@ public class SignupHelper {
             logger.error("Error determining company name", e);
             return "";
         }
+    }
+
+    /**
+     * Validates a signup request.
+     * 
+     * @param signupRequest The signup request to validate
+     * @param isSocialLogin Whether this is a social login request
+     * @return true if the request is valid, false otherwise
+     */
+    public boolean validateSignupRequest(SignupRequest signupRequest, boolean isSocialLogin) {
+        // Basic validation
+        if (signupRequest.getEmail() == null || signupRequest.getEmail().isEmpty()) {
+            return false;
+        }
+
+        // For social login, we don't require password validation
+        if (!isSocialLogin) {
+            // For regular signup, validate password
+            if (signupRequest.getPassword() == null || signupRequest.getPassword().isEmpty()) {
+                return false;
+            }
+
+            if (!signupRequest.getPassword().equals(signupRequest.getConfirmPassword())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Validates a signup request.
+     * 
+     * @param signupRequest The signup request to validate
+     * @return true if the request is valid, false otherwise
+     */
+    public boolean validateSignupRequest(SignupRequest signupRequest) {
+        // Default to regular signup (not social login)
+        return validateSignupRequest(signupRequest, false);
     }
 }

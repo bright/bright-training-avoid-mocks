@@ -64,7 +64,7 @@ public class SignupService {
         Boolean isSocialLoginFlow = (Boolean) request.getAttribute(IS_SOCIAL_LOGIN_FLOW);
 
         // Validate the signup request
-        if (!validateSignupRequest(signupRequest, isSocialLoginFlow != null && isSocialLoginFlow)) {
+        if (!signupHelper.validateSignupRequest(signupRequest, isSocialLoginFlow != null && isSocialLoginFlow)) {
             return SignupResponse.failure("Invalid signup request");
         }
 
@@ -203,44 +203,6 @@ public class SignupService {
         }
     }
 
-    /**
-     * Validates a signup request.
-     * 
-     * @param signupRequest The signup request to validate
-     * @param isSocialLogin Whether this is a social login request
-     * @return true if the request is valid, false otherwise
-     */
-    public boolean validateSignupRequest(SignupRequest signupRequest, boolean isSocialLogin) {
-        // Basic validation
-        if (signupRequest.getEmail() == null || signupRequest.getEmail().isEmpty()) {
-            return false;
-        }
-
-        // For social login, we don't require password validation
-        if (!isSocialLogin) {
-            // For regular signup, validate password
-            if (signupRequest.getPassword() == null || signupRequest.getPassword().isEmpty()) {
-                return false;
-            }
-
-            if (!signupRequest.getPassword().equals(signupRequest.getConfirmPassword())) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Validates a signup request.
-     * 
-     * @param signupRequest The signup request to validate
-     * @return true if the request is valid, false otherwise
-     */
-    public boolean validateSignupRequest(SignupRequest signupRequest) {
-        // Default to regular signup (not social login)
-        return validateSignupRequest(signupRequest, false);
-    }
 
     private User createUserFromRequest(SignupRequest signupRequest, HttpServletRequest request) {
         User user = new User();

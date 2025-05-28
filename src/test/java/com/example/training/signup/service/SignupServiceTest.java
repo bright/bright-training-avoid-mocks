@@ -116,6 +116,7 @@ class SignupServiceTest {
     @DisplayName("processSignup should return success response when signup is valid")
     void processSignup_WithValidRequest_ShouldReturnSuccessResponse() {
         // given
+        when(signupHelper.validateSignupRequest(eq(validSignupRequest), eq(false))).thenReturn(true);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -128,6 +129,7 @@ class SignupServiceTest {
         assertEquals("/dashboard", response.getRedirectUrl());
 
         // Verify interactions with mocks
+        verify(signupHelper).validateSignupRequest(eq(validSignupRequest), eq(false));
         verify(userRepository).existsByEmail("test@example.com");
         verify(userRepository).save(userCaptor.capture());
 
@@ -156,6 +158,7 @@ class SignupServiceTest {
     @DisplayName("processSignup should return failure response when user already exists")
     void processSignup_WithExistingUser_ShouldReturnFailureResponse() {
         // Arrange
+        when(signupHelper.validateSignupRequest(eq(validSignupRequest), eq(false))).thenReturn(true);
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
         // Act
@@ -166,6 +169,7 @@ class SignupServiceTest {
         assertEquals("User with this email already exists", response.getMessage());
 
         // Verify interactions with mocks
+        verify(signupHelper).validateSignupRequest(eq(validSignupRequest), eq(false));
         verify(userRepository).existsByEmail("test@example.com");
         verify(userRepository, never()).save(any(User.class));
 
@@ -182,6 +186,7 @@ class SignupServiceTest {
     void processSignup_WithNonMatchingPasswords_ShouldReturnFailureResponse() {
         // Arrange
         validSignupRequest.setConfirmPassword("differentPassword");
+        when(signupHelper.validateSignupRequest(eq(validSignupRequest), eq(false))).thenReturn(false);
 
         // Act
         SignupResponse response = signupService.processSignup(validSignupRequest, request, this.response);
@@ -191,6 +196,7 @@ class SignupServiceTest {
         assertEquals("Invalid signup request", response.getMessage());
 
         // Verify interactions with mocks
+        verify(signupHelper).validateSignupRequest(eq(validSignupRequest), eq(false));
         verify(userRepository, never()).existsByEmail(anyString());
         verify(userRepository, never()).save(any(User.class));
 
@@ -206,11 +212,15 @@ class SignupServiceTest {
     @Test
     @DisplayName("validateSignupRequest should return true for valid request")
     void validateSignupRequest_WithValidRequest_ShouldReturnTrue() {
+        // Arrange
+        when(signupHelper.validateSignupRequest(validSignupRequest)).thenReturn(true);
+
         // Act
-        boolean isValid = signupService.validateSignupRequest(validSignupRequest);
+        boolean isValid = signupHelper.validateSignupRequest(validSignupRequest);
 
         // Assert
         assertTrue(isValid);
+        verify(signupHelper).validateSignupRequest(validSignupRequest);
     }
 
     @Test
@@ -218,12 +228,14 @@ class SignupServiceTest {
     void validateSignupRequest_WithNullEmail_ShouldReturnFalse() {
         // Arrange
         validSignupRequest.setEmail(null);
+        when(signupHelper.validateSignupRequest(validSignupRequest)).thenReturn(false);
 
         // Act
-        boolean isValid = signupService.validateSignupRequest(validSignupRequest);
+        boolean isValid = signupHelper.validateSignupRequest(validSignupRequest);
 
         // Assert
         assertFalse(isValid);
+        verify(signupHelper).validateSignupRequest(validSignupRequest);
     }
 
     @Test
@@ -231,12 +243,14 @@ class SignupServiceTest {
     void validateSignupRequest_WithNullPassword_ShouldReturnFalse() {
         // Arrange
         validSignupRequest.setPassword(null);
+        when(signupHelper.validateSignupRequest(validSignupRequest)).thenReturn(false);
 
         // Act
-        boolean isValid = signupService.validateSignupRequest(validSignupRequest);
+        boolean isValid = signupHelper.validateSignupRequest(validSignupRequest);
 
         // Assert
         assertFalse(isValid);
+        verify(signupHelper).validateSignupRequest(validSignupRequest);
     }
 
     @Test
@@ -244,12 +258,14 @@ class SignupServiceTest {
     void validateSignupRequest_WithNonMatchingPasswords_ShouldReturnFalse() {
         // Arrange
         validSignupRequest.setConfirmPassword("differentPassword");
+        when(signupHelper.validateSignupRequest(validSignupRequest)).thenReturn(false);
 
         // Act
-        boolean isValid = signupService.validateSignupRequest(validSignupRequest);
+        boolean isValid = signupHelper.validateSignupRequest(validSignupRequest);
 
         // Assert
         assertFalse(isValid);
+        verify(signupHelper).validateSignupRequest(validSignupRequest);
     }
 
     @Test
@@ -298,6 +314,9 @@ class SignupServiceTest {
         user.setLastName("User");
         user.setCompanyName("Social Company");
         sessionInfo.setUser(user);
+
+        // Mock signupHelper.validateSignupRequest to return true for any SignupRequest with isSocialLogin=true
+        when(signupHelper.validateSignupRequest(any(SignupRequest.class), eq(true))).thenReturn(true);
 
         // Setup userRepository to not find an existing user and to save the new user
         when(userRepository.existsByEmail("social@example.com")).thenReturn(false);
