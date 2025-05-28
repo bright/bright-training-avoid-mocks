@@ -53,9 +53,9 @@ public class SignupController {
             HttpServletRequest request,
             HttpServletResponse response,
             RedirectAttributes redirectAttributes) {
-        
+
         SignupResponse signupResponse = signupService.processSignup(signupRequest, request, response);
-        
+
         if (signupResponse.isSuccess()) {
             redirectAttributes.addFlashAttribute("message", "Signup successful!");
             return "redirect:" + signupResponse.getRedirectUrl();
@@ -66,27 +66,4 @@ public class SignupController {
         }
     }
 
-    /**
-     * Alternative endpoint that directly passes the HttpServletRequest and HttpServletResponse
-     * to the service layer without extracting the data first.
-     * 
-     * This is an even more problematic approach as it completely delegates request handling
-     * to the service layer.
-     */
-    @PostMapping("/direct")
-    public String processSignupDirect(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            RedirectAttributes redirectAttributes) {
-        
-        SignupResponse signupResponse = signupService.processSignup(request, response);
-        
-        if (signupResponse.isSuccess()) {
-            redirectAttributes.addFlashAttribute("message", "Signup successful!");
-            return "redirect:" + signupResponse.getRedirectUrl();
-        } else {
-            redirectAttributes.addFlashAttribute("error", signupResponse.getMessage());
-            return "redirect:/signup";
-        }
-    }
 }

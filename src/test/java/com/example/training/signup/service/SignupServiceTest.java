@@ -188,52 +188,6 @@ class SignupServiceTest {
         verify(this.response, never()).addCookie(any(Cookie.class));
     }
 
-    @Test
-    @DisplayName("processSignup with HttpServletRequest should extract parameters and process signup")
-    void processSignup_WithHttpServletRequest_ShouldExtractParametersAndProcessSignup() {
-        // Arrange
-        when(request.getParameter("email")).thenReturn("test@example.com");
-        when(request.getParameter("firstName")).thenReturn("Test");
-        when(request.getParameter("lastName")).thenReturn("User");
-        when(request.getParameter("companyName")).thenReturn("Test Company");
-        when(request.getParameter("password")).thenReturn("password123");
-        when(request.getParameter("confirmPassword")).thenReturn("password123");
-        when(request.getParameter("countryCode")).thenReturn("US");
-        when(request.getParameter("phoneNumber")).thenReturn("1234567890");
-        when(request.getSession(anyBoolean())).thenReturn(session);
-        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        SignupResponse response = signupService.processSignup(request, this.response);
-
-        // Assert
-        assertTrue(response.isSuccess());
-        assertNotNull(response.getUserId());
-        assertEquals("/dashboard", response.getRedirectUrl());
-
-        // Verify interactions with mocks
-        verify(request).getParameter("email");
-        verify(request).getParameter("firstName");
-        verify(request).getParameter("lastName");
-        verify(request).getParameter("companyName");
-        verify(request).getParameter("password");
-        verify(request).getParameter("confirmPassword");
-        verify(request).getParameter("countryCode");
-        verify(request).getParameter("phoneNumber");
-
-        verify(userRepository).existsByEmail("test@example.com");
-        verify(userRepository).save(userCaptor.capture());
-        verify(session).setAttribute(eq("userId"), anyString());
-        verify(this.response).addCookie(cookieCaptor.capture());
-
-        // Verify captured arguments
-        User savedUser = userCaptor.getValue();
-        assertEquals("test@example.com", savedUser.getEmail());
-        assertEquals("Test", savedUser.getFirstName());
-    }
 
     @Test
     @DisplayName("validateSignupRequest should return true for valid request")

@@ -50,27 +50,6 @@ public class SignupService {
         this.googleAuth = googleAuth;
     }
 
-    /**
-     * Processes a signup request.
-     * 
-     * @param request The HTTP request containing signup information
-     * @param response The HTTP response
-     * @return A SignupResponse object with the result of the signup operation
-     */
-    public SignupResponse processSignup(HttpServletRequest request, HttpServletResponse response) {
-        // Extract signup data from the request
-        SignupRequest signupRequest = new SignupRequest();
-        signupRequest.setEmail(request.getParameter("email"));
-        signupRequest.setFirstName(request.getParameter("firstName"));
-        signupRequest.setLastName(request.getParameter("lastName"));
-        signupRequest.setCompanyName(request.getParameter("companyName"));
-        signupRequest.setPassword(request.getParameter("password"));
-        signupRequest.setConfirmPassword(request.getParameter("confirmPassword"));
-        signupRequest.setCountryCode(request.getParameter("countryCode"));
-        signupRequest.setPhoneNumber(request.getParameter("phoneNumber"));
-
-        return processSignup(signupRequest, request, response);
-    }
 
     /**
      * Processes a signup request from the provided SignupRequest object.
