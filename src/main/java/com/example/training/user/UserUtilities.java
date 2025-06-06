@@ -60,11 +60,8 @@ public class UserUtilities {
         List<Object> orderIds = new ArrayList<Object>();
         List<Object> assetIds = new AssetUtilities().getActiveAsset(user.getUserId(), orderIds, orders);
 
-        String activeId = commonUtil.getValueFromApplicationResourceByMode("user." + brandId + ".active");
         String cancelId = commonUtil.getValueFromApplicationResource("user." + brandId + ".canceled");
         String nonPaymentId = commonUtil.getValueFromApplicationResourceByMode("user." + brandId + ".nonpayment");
-        String activeUnpaidId = commonUtil.getValueFromApplicationResourceByMode("user." + brandId + ".activeunpaid");
-        String cancelledByRequestNonPayment = commonUtil.getValueFromApplicationResourceByMode("cancellationStep." + brandId + ".Collection");
         String taskId = null;
 
        if (cancelId.equals(toStatusId)) {
