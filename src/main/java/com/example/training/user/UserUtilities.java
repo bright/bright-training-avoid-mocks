@@ -1,7 +1,6 @@
 package com.example.training.user;
 
 import com.example.training.common.AgingProcess;
-import com.example.training.common.CommonConstants;
 import com.example.training.common.CommonUtil;
 import com.example.training.common.DSUpdater;
 import com.example.training.payment.PaymentAuthorizationDTOEx;
@@ -22,6 +21,7 @@ public class UserUtilities {
     private static CommonUtil commonUtil = CommonUtil.getInstance();
     private static ObjectMapper mapper = commonUtil.getObjMapper();
     private static PaymentHelper paymentHelper = new PaymentHelper();
+    private final BillingNoteCalculator billingNoteCalculator = new BillingNoteCalculator();
 
     public UserUtilities() {
         // Default constructor
@@ -65,28 +65,9 @@ public class UserUtilities {
         String taskId = null;
 
        if (cancelId.equals(toStatusId)) {
-            CustomerNoteWS customerNotes[] = user.getCustomerNotes();
-            boolean addJbillingNote = true;
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-            Calendar calendar = Calendar.getInstance();
-            String today = sdf.format(calendar.getTime());
+           var addJbillingNote = billingNoteCalculator.hasBillingNote(user);
 
-            calendar.add(Calendar.DATE, -1);
-            String yesterday = sdf.format(calendar.getTime());
-
-            if (customerNotes != null && customerNotes.length > 0) {
-                for (CustomerNoteWS note : customerNotes) {
-                    String noteCreatedTime = sdf.format(note.getCreationTime());
-                    String title = note.getNoteTitle();
-
-                    if ((noteCreatedTime.equals(today) || noteCreatedTime.equals(yesterday)) && title.equals("Cancelled on Request")) {
-                        addJbillingNote = false;
-                        break;
-                    }
-                }
-            }
-
-            if (addJbillingNote) {
+           if (addJbillingNote) {
                 log.info("Adding jbilling note for first time for status Cancelled on Request");
                 createCustomerNotesWithStatus(user, brandId, "Moving to " + toStatus, toStatus);
             }
