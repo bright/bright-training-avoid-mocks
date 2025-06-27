@@ -2,19 +2,41 @@ package com.example.training.signup.model;
 
 import java.util.UUID;
 
+import com.google.cloud.spring.data.datastore.core.mapping.Entity;
+import com.google.cloud.spring.data.datastore.core.mapping.Field;
+import org.springframework.data.annotation.Id;
+
 /**
  * Represents a user in the system.
  * This is a simple model class for demonstration purposes.
  */
+@Entity(name = "users")
 public class User {
+    @Id
     private String id;
+
+    @Field(name = "email")
     private String email;
+
+    @Field(name = "first_name")
     private String firstName;
+
+    @Field(name = "last_name")
     private String lastName;
+
+    @Field(name = "company_name")
     private String companyName;
+
+    @Field(name = "password")
     private String password;
+
+    @Field(name = "ip_address")
     private String ipAddress;
+
+    @Field(name = "country_code")
     private String countryCode;
+
+    @Field(name = "phone_number")
     private String phoneNumber;
 
     public User() {

@@ -9,25 +9,20 @@ import com.example.training.signup.model.SocialLoginSignup;
 import com.example.training.signup.model.User;
 import com.example.training.signup.repository.UserRepository;
 import com.example.training.signup.sociallogin.AuthType;
-import com.example.training.signup.sociallogin.GoogleAuth;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.Mock;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,17 +36,17 @@ import static org.mockito.Mockito.*;
 
 /**
  * Test class for SignupService.
- * 
+ *
  * This test class uses @SpringBootTest to load the application context
  * and @MockBean to mock the dependencies of SignupService.
  */
 @SpringBootTest
 class SignupServiceTest {
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private SignupHelper signupHelper;
 
     private MockHttpServletRequest request;
@@ -73,6 +68,7 @@ class SignupServiceTest {
 
     @BeforeEach
     void setUp() {
+
         validSignupRequest = new SignupRequest();
         validSignupRequest.setEmail("test@example.com");
         validSignupRequest.setFirstName("Test");

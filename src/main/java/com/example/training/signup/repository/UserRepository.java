@@ -1,30 +1,17 @@
 package com.example.training.signup.repository;
 
 import com.example.training.signup.model.User;
+import com.google.cloud.spring.data.datastore.repository.DatastoreRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 /**
  * Repository interface for User entity operations.
  */
-public interface UserRepository {
-    
-    /**
-     * Saves a user to the repository.
-     * 
-     * @param user The user to save
-     * @return The saved user with any generated IDs or fields
-     */
-    User save(User user);
-    
-    /**
-     * Finds a user by their ID.
-     * 
-     * @param id The user ID
-     * @return An Optional containing the user if found, or empty if not found
-     */
-    Optional<User> findById(String id);
-    
+@Repository
+public interface UserRepository extends DatastoreRepository<User, String> {
+
     /**
      * Finds a user by their email address.
      * 
@@ -32,7 +19,7 @@ public interface UserRepository {
      * @return An Optional containing the user if found, or empty if not found
      */
     Optional<User> findByEmail(String email);
-    
+
     /**
      * Checks if a user with the given email already exists.
      * 
@@ -40,11 +27,4 @@ public interface UserRepository {
      * @return true if a user with the email exists, false otherwise
      */
     boolean existsByEmail(String email);
-    
-    /**
-     * Deletes a user from the repository.
-     * 
-     * @param user The user to delete
-     */
-    void delete(User user);
 }

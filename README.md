@@ -12,7 +12,7 @@ This repository contains training materials for addressing two common issues in 
 This repository is organized into branches that demonstrate the progression from problematic code to improved
 implementations:
 
-### Branch 1: `initial-state`
+### Branch 1: `aw-sign-up-initial-state`
 
 - Examples of problematic code with excessive mocking
 - Examples of service layer code tightly coupled to servlet API
