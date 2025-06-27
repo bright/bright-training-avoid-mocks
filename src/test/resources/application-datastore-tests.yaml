@@ -1,0 +1,14 @@
+spring:
+  cloud:
+    gcp:
+      datastore:
+        emulator:
+          # this is required to use GcpDatastoreAutoConfiguration
+          # the default gcp emulator autoconfiguration is not suitable for tests, as it uses single port
+          enabled: false
+        #  allows GcpDatastoreAutoConfiguration to be created without local credentials and without emulator
+        host: localhost
+aw:
+  datastore:
+    emulator:
+      enabled: true
