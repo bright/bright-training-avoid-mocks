@@ -39,6 +39,8 @@ public class ProductUtilities {
 
         if(brands == null) {
             brands = new HashMap<>();
+        } else {
+            brands = new HashMap<>(brands);
         }
 
         List<String> brandIds = null;

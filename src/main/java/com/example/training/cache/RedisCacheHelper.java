@@ -1,5 +1,6 @@
 package com.example.training.cache;
 
+import com.example.training.config.RedisConfig;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,18 +21,12 @@ import java.util.Map;
 public class RedisCacheHelper {
 
     private static final Logger _LOG = LogManager.getLogger(RedisCacheHelper.class.getName());
-
-    // Redis configuration
-    private static final String _REDIS_SERVER_URL = "localhost";
-    private static final Integer redisPort = 6379;
-    private static final Integer redisReadTimeout = 10000;
-
-    private static JedisPool pool = new JedisPool(new JedisPoolConfig(), _REDIS_SERVER_URL, redisPort, redisReadTimeout);
+    private static JedisPool pool;
 
     static {
         JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
         jedisPoolConfig.setMaxTotal(25);
-        pool = new JedisPool(jedisPoolConfig, _REDIS_SERVER_URL, redisPort, redisReadTimeout);
+        pool = new JedisPool(jedisPoolConfig, RedisConfig.getRedisHost(), RedisConfig.getRedisPort(), RedisConfig.getRedisReadTimeout());
     }
 
     /**
