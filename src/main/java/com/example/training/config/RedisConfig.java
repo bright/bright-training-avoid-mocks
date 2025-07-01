@@ -1,12 +1,9 @@
 package com.example.training.config;
 
-import org.springframework.stereotype.Component;
-
 /**
  * Configuration for Redis connection parameters.
  * This allows for configuring Redis in tests using Testcontainers.
  */
-@Component
 public class RedisConfig {
     private static String redisHost = "localhost";
     private static int redisPort = 6379;
