@@ -93,4 +93,39 @@ public class CommonUtil {
     public void unmapAssetsInFC(String accountPin, String brandId, boolean param1, boolean param2) {
         // Implementation omitted for brevity
     }
+
+    /**
+     * Gets a list of all brand IDs.
+     *
+     * @return list of brand IDs
+     */
+    public java.util.List<String> getListOfBrandIds() {
+        // Simplified implementation - return some mock brand IDs
+        return java.util.Arrays.asList("teleport", "setmore", "inthechair", "brand1", "brand2");
+    }
+
+    /**
+     * Checks if the given brand ID is a product brand.
+     *
+     * @param brandId the brand ID to check
+     * @return true if it's a product brand, false otherwise
+     */
+    public boolean isProductBrand(String brandId) {
+        // Simplified implementation - consider certain brands as product brands
+        return brandId != null && (brandId.equals("teleport") || brandId.equals("setmore"));
+    }
+
+    /**
+     * Converts a response map to JSON string.
+     *
+     * @param resMap the response map
+     * @return JSON string representation
+     */
+    public String responseAsString(java.util.Map<String, Object> resMap) {
+        try {
+            return objectMapper.writeValueAsString(resMap);
+        } catch (Exception e) {
+            return "{\"status\":\"failure\",\"message\":\"Error converting response to JSON\"}";
+        }
+    }
 }
