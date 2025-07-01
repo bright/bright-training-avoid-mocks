@@ -1,7 +1,6 @@
 package com.example.training.user;
 
 import com.example.training.common.AgingProcess;
-import com.example.training.common.CommonConstants;
 import com.example.training.common.CommonUtil;
 import com.example.training.common.DSUpdater;
 import com.example.training.payment.PaymentAuthorizationDTOEx;
@@ -12,8 +11,9 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.*;
 
 @Component
@@ -45,19 +45,12 @@ public class UserUtilities {
 
         JbillingAPI api = commonUtil.getJbillingAPIByBrandId(brandId);
 
-        List<String> historyComments = new ArrayList<String>();
+        List<String> historyComments = new ArrayList<>();
 
         log.info("last payment date: " + lastPaymentDate);
 
-        DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        Calendar toDate = Calendar.getInstance();
-        toDate.add(Calendar.MONTH, 1);
-        toDate.set(Calendar.DAY_OF_MONTH, 10);
-        toDate.set(Calendar.HOUR_OF_DAY, 0);
-        toDate.set(Calendar.MINUTE, 0);
-
         OrderWS[] orders = api.getUserSubscriptions(user.getUserId());
-        List<Object> orderIds = new ArrayList<Object>();
+        List<Object> orderIds = new ArrayList<>();
         List<Object> assetIds = new AssetUtilities().getActiveAsset(user.getUserId(), orderIds, orders);
 
         String cancelId = commonUtil.getValueFromApplicationResource("user." + brandId + ".canceled");
@@ -65,32 +58,8 @@ public class UserUtilities {
         String taskId = null;
 
        if (cancelId.equals(toStatusId)) {
-            CustomerNoteWS customerNotes[] = user.getCustomerNotes();
-            boolean addJbillingNote = true;
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-            Calendar calendar = Calendar.getInstance();
-            String today = sdf.format(calendar.getTime());
-
-            calendar.add(Calendar.DATE, -1);
-            String yesterday = sdf.format(calendar.getTime());
-
-            if (customerNotes != null && customerNotes.length > 0) {
-                for (CustomerNoteWS note : customerNotes) {
-                    String noteCreatedTime = sdf.format(note.getCreationTime());
-                    String title = note.getNoteTitle();
-
-                    if ((noteCreatedTime.equals(today) || noteCreatedTime.equals(yesterday)) && title.equals("Cancelled on Request")) {
-                        addJbillingNote = false;
-                        break;
-                    }
-                }
-            }
-
-            if (addJbillingNote) {
-                log.info("Adding jbilling note for first time for status Cancelled on Request");
-                createCustomerNotesWithStatus(user, brandId, "Moving to " + toStatus, toStatus);
-            }
-            changeUserStatusIfCancellationTriggeredForCollectionsCustomer(brandId, user);
+           addCustomerNoteToJBilling(user, new BrandId(brandId), new Status(toStatus));
+           changeUserStatusIfCancellationTriggeredForCollectionsCustomer(brandId, user);
 
         } else if (nonPaymentId.equals(toStatusId) || "1703".equals(toStatusId)) {
             // Complex logic for non-payment status
@@ -144,7 +113,7 @@ public class UserUtilities {
 
         // Return the aging process
         return new AgingProcess(null, accountPin, String.valueOf(user.getUserId()), brandId, taskId, "Pending", toStatus, lastPaymentDate,
-                format.parse(format.format(toDate.getTime())), null, new Date(), null, fromStatus, null, assetIds, orderIds);
+                getDueDateForAgingProcess(), null, new Date(), null, fromStatus, null, assetIds, orderIds);
     }
 
     // Supporting methods
@@ -192,5 +161,53 @@ public class UserUtilities {
     public void deletePaymentInstrument(UserWS user, JbillingAPI api, String brandId) {
         // Implementation omitted for brevity
         log.info("Deleting payment instrument");
+    }
+    
+    public Date getDueDateForAgingProcess() throws ParseException {
+        // Removed format and parse and moved logic here, can be simplified using LocalDate
+        
+        Calendar toDate = Calendar.getInstance();
+        toDate.add(Calendar.MONTH, 1);
+        toDate.set(Calendar.DAY_OF_MONTH, 10);
+        toDate.set(Calendar.HOUR_OF_DAY, 0);
+        toDate.set(Calendar.MINUTE, 0);
+        toDate.set(Calendar.SECOND, 0);
+        toDate.set(Calendar.MILLISECOND, 0);
+        
+        return toDate.getTime();
+    }
+
+    public record BrandId(String value) {}
+    public record Status(String value) {}
+    
+    public void addCustomerNoteToJBilling(UserWS user, BrandId brandId, Status toStatus) {
+        CustomerNoteWS[] customerNotes = user.getCustomerNotes();
+        boolean shouldAddCustomerNote = true;
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        Calendar calendar = Calendar.getInstance();
+
+        String today = sdf.format(calendar.getTime());
+        calendar.add(Calendar.DATE, -1);
+        String yesterday = sdf.format(calendar.getTime());
+        
+        if (customerNotes != null) {
+            for (CustomerNoteWS note : customerNotes) {
+                String noteDate = sdf.format(note.getCreationTime());
+                String noteTitle = note.getNoteTitle();
+
+                if (("Cancelled on Request".equals(noteTitle)) &&
+                        (today.equals(noteDate) || yesterday.equals(noteDate))) {
+                    shouldAddCustomerNote = false;
+                    break;
+                }
+            }
+        }
+
+        if (shouldAddCustomerNote) {
+            log.info("Adding jbilling note for first time for status Cancelled on Request");
+            String toStatusValue = toStatus.value();
+            createCustomerNotesWithStatus(user, brandId.value(), "Moving to " + toStatusValue, toStatusValue);
+        }
     }
 }

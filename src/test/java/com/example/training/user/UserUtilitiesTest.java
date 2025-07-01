@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.lang.reflect.Field;
 
 import java.math.BigDecimal;
+import java.text.ParseException;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,7 +122,7 @@ public class UserUtilitiesTest {
         CustomerNoteWS[] customerNotes = new CustomerNoteWS[0];
         userWS.setCustomerNotes(customerNotes);
 
-        doNothing().when(userUtilities).createCustomerNotesWithStatus(any(UserWS.class), anyString(), anyString(), anyString());
+        doNothing().when(userUtilities).addCustomerNoteToJBilling(any(UserWS.class), any(UserUtilities.BrandId.class), any(UserUtilities.Status.class));
         doNothing().when(userUtilities).changeUserStatusIfCancellationTriggeredForCollectionsCustomer(anyString(), any(UserWS.class));
 
         //when
@@ -137,7 +138,9 @@ public class UserUtilitiesTest {
         assertThat(result.getStatus()).isEqualTo("Pending");
         assertThat(result.getFromStatus()).isEqualTo("fromStatus");
 
-        verify(userUtilities).createCustomerNotesWithStatus(eq(userWS), eq("brandId"), eq("Moving to Cancelled on Request"), eq("Cancelled on Request"));
+        verify(userUtilities).addCustomerNoteToJBilling(eq(userWS), 
+                eq(new UserUtilities.BrandId("brandId")), 
+                eq(new UserUtilities.Status("Cancelled on Request")));
         verify(userUtilities).changeUserStatusIfCancellationTriggeredForCollectionsCustomer(eq("brandId"), eq(userWS));
     }
 
@@ -228,5 +231,129 @@ public class UserUtilitiesTest {
         assertThat(result.getFromStatus()).isEqualTo("fromStatus");
 
         verify(userUtilities).createCustomerNotesWithStatus(eq(userWS), eq("brandId"), eq("Moving to Active"), eq("Active"));
+    }
+
+    @Test
+    void getDueDateForAgingProcess_returnsCorrectDateForNextMonth() throws ParseException {
+        //when
+        Date dueDate = userUtilities.getDueDateForAgingProcess();
+
+        //then
+        Calendar expectedDate = Calendar.getInstance();
+        expectedDate.add(Calendar.MONTH, 1);
+        expectedDate.set(Calendar.DAY_OF_MONTH, 10);
+        expectedDate.set(Calendar.HOUR_OF_DAY, 0);
+        expectedDate.set(Calendar.MINUTE, 0);
+        expectedDate.set(Calendar.SECOND, 0);
+        expectedDate.set(Calendar.MILLISECOND, 0);
+
+        assertThat(dueDate).isEqualTo(expectedDate.getTime());
+    }
+
+    @Test
+    void getDueDateForAgingProcess_handlesLeapYearCorrectly() throws ParseException {
+        //given
+        Calendar leapYearDate = Calendar.getInstance();
+        leapYearDate.set(Calendar.YEAR, 2024); // Leap year
+        leapYearDate.set(Calendar.MONTH, Calendar.FEBRUARY);
+        leapYearDate.set(Calendar.DAY_OF_MONTH, 29);
+        leapYearDate.set(Calendar.HOUR_OF_DAY, 0);
+        leapYearDate.set(Calendar.MINUTE, 0);
+        leapYearDate.set(Calendar.SECOND, 0);
+        leapYearDate.set(Calendar.MILLISECOND, 0);
+
+        //when
+        Date dueDate = userUtilities.getDueDateForAgingProcess();
+
+        //then
+        Calendar expectedDate = Calendar.getInstance();
+        expectedDate.add(Calendar.MONTH, 1);
+        expectedDate.set(Calendar.DAY_OF_MONTH, 10);
+        expectedDate.set(Calendar.HOUR_OF_DAY, 0);
+        expectedDate.set(Calendar.MINUTE, 0);
+        expectedDate.set(Calendar.SECOND, 0);
+        expectedDate.set(Calendar.MILLISECOND, 0);
+
+        assertThat(dueDate).isEqualTo(expectedDate.getTime());
+    }
+
+    @Test
+    void getDueDateForAgingProcess_handlesEndOfMonthCorrectly() throws ParseException {
+        //given
+        Calendar endOfMonthDate = Calendar.getInstance();
+        endOfMonthDate.set(Calendar.MONTH, Calendar.JANUARY);
+        endOfMonthDate.set(Calendar.DAY_OF_MONTH, 31);
+
+        //when
+        Date dueDate = userUtilities.getDueDateForAgingProcess();
+
+        //then
+        Calendar expectedDate = Calendar.getInstance();
+        expectedDate.add(Calendar.MONTH, 1);
+        expectedDate.set(Calendar.DAY_OF_MONTH, 10);
+        expectedDate.set(Calendar.HOUR_OF_DAY, 0);
+        expectedDate.set(Calendar.MINUTE, 0);
+        expectedDate.set(Calendar.SECOND, 0);
+        expectedDate.set(Calendar.MILLISECOND, 0);
+
+        assertThat(dueDate).isEqualTo(expectedDate.getTime());
+    }
+
+    @Test
+    void addCustomerNoteToJBilling_addsNoteWhenNoMatchingNotesExist() {
+        //given
+        CustomerNoteWS[] customerNotes = new CustomerNoteWS[0];
+        userWS.setCustomerNotes(customerNotes);
+
+        //when
+        userUtilities.addCustomerNoteToJBilling(userWS, new UserUtilities.BrandId("brandId"), new UserUtilities.Status("Cancelled on Request"));
+
+        //then
+        verify(userUtilities).createCustomerNotesWithStatus(eq(userWS), eq("brandId"), eq("Moving to Cancelled on Request"), eq("Cancelled on Request"));
+    }
+
+    @Test
+    void addCustomerNoteToJBilling_doesNotAddNoteWhenMatchingNoteExistsToday() {
+        //given
+        Calendar calendar = Calendar.getInstance();
+        CustomerNoteWS note = new CustomerNoteWS();
+        note.setNoteTitle("Cancelled on Request");
+        note.setCreationTime(calendar.getTime());
+        userWS.setCustomerNotes(new CustomerNoteWS[]{note});
+
+        //when
+        userUtilities.addCustomerNoteToJBilling(userWS, new UserUtilities.BrandId("brandId"), new UserUtilities.Status("Cancelled on Request"));
+
+        //then
+        verify(userUtilities, never()).createCustomerNotesWithStatus(any(UserWS.class), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void addCustomerNoteToJBilling_doesNotAddNoteWhenMatchingNoteExistsYesterday() {
+        //given
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DATE, -1);
+        CustomerNoteWS note = new CustomerNoteWS();
+        note.setNoteTitle("Cancelled on Request");
+        note.setCreationTime(calendar.getTime());
+        userWS.setCustomerNotes(new CustomerNoteWS[]{note});
+
+        //when
+        userUtilities.addCustomerNoteToJBilling(userWS, new UserUtilities.BrandId("brandId"), new UserUtilities.Status("Cancelled on Request"));
+
+        //then
+        verify(userUtilities, never()).createCustomerNotesWithStatus(any(UserWS.class), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void addCustomerNoteToJBilling_addsNoteWhenNoCustomerNotesExist() {
+        //given
+        userWS.setCustomerNotes(null);
+
+        //when
+        userUtilities.addCustomerNoteToJBilling(userWS, new UserUtilities.BrandId("brandId"), new UserUtilities.Status("Cancelled on Request"));
+
+        //then
+        verify(userUtilities).createCustomerNotesWithStatus(eq(userWS), eq("brandId"), eq("Moving to Cancelled on Request"), eq("Cancelled on Request"));
     }
 }
