@@ -18,7 +18,7 @@ implementations:
 - Examples of service layer code tightly coupled to servlet API
 - Tests that are brittle and hard to maintain
 
-### Branch 2: `refactored-unit-integration`
+### Branch 2: `aw-sign-up-integration-tests`
 
 - Refactored code uses unit test for pure logic
 - Refactored code to rely heavily on integration tests with as little mocks as possible

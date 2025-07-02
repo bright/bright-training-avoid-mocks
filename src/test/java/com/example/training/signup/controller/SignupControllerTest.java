@@ -18,6 +18,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
 
 /**
  * Test class for SignupController using @WebMvcTest.
@@ -33,6 +35,9 @@ class SignupControllerTest {
 
     @MockitoBean
     private SignupService signupService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private SignupRequest signupRequest;
 
@@ -104,6 +109,67 @@ class SignupControllerTest {
                 .andExpect(redirectedUrl("/signup"))
                 .andExpect(flash().attribute("error", errorMessage))
                 .andExpect(flash().attributeExists("signupRequest"));
+    }
+
+    @Test
+    @DisplayName("API signup should return success response when signup is successful")
+    void apiSignup_WhenSuccessful_ShouldReturnSuccessResponse() throws Exception {
+        // given
+        SignupResponse signupResponse = SignupResponse.success("user123", "/dashboard");
+        when(signupService.validateSignupRequest(any(SignupRequest.class))).thenReturn(true);
+        when(signupService.signup(any(SignupRequest.class), any(HttpServletRequest.class), any(HttpServletResponse.class)))
+                .thenReturn(signupResponse);
+
+        // when
+        mockMvc.perform(post("/signup/api")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+
+        // then
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.userId").value("user123"))
+                .andExpect(jsonPath("$.redirectUrl").value("/dashboard"));
+    }
+
+    @Test
+    @DisplayName("API signup should return failure response when validation fails")
+    void apiSignup_WhenValidationFails_ShouldReturnFailureResponse() throws Exception {
+        // given
+        when(signupService.validateSignupRequest(any(SignupRequest.class))).thenReturn(false);
+
+        // when
+        mockMvc.perform(post("/signup/api")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+
+        // then
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid signup request"));
+    }
+
+    @Test
+    @DisplayName("API signup should return failure response when user already exists")
+    void apiSignup_WhenUserAlreadyExists_ShouldReturnFailureResponse() throws Exception {
+        // given
+        SignupResponse signupResponse = SignupResponse.failure("User with this email already exists");
+        when(signupService.validateSignupRequest(any(SignupRequest.class))).thenReturn(true);
+        when(signupService.signup(any(SignupRequest.class), any(HttpServletRequest.class), any(HttpServletResponse.class)))
+                .thenReturn(signupResponse);
+
+        // when
+        mockMvc.perform(post("/signup/api")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+
+        // then
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("User with this email already exists"));
     }
 
 }

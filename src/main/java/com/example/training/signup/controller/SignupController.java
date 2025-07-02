@@ -8,10 +8,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
@@ -64,6 +67,27 @@ public class SignupController {
             redirectAttributes.addFlashAttribute("signupRequest", signupRequest);
             return "redirect:/signup";
         }
+    }
+
+    /**
+     * JSON API endpoint for signup - equivalent to SignupEndpoints.signup()
+     * 
+     * This endpoint provides a simplified version of the SignupEndpoints.signup() method
+     * with basic validation and JSON request/response handling.
+     */
+    @PostMapping("/api")
+    public @ResponseBody SignupResponse signup(
+            @RequestBody SignupRequest signupRequest,
+            BindingResult validationResult,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        // Basic validation using SignupHelper
+        if (!signupService.validateSignupRequest(signupRequest)) {
+            return SignupResponse.failure("Invalid signup request");
+        }
+
+        return signupService.signup(signupRequest, request, response);
     }
 
 }

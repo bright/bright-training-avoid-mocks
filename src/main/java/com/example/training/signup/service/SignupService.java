@@ -52,6 +52,45 @@ public class SignupService {
 
 
     /**
+     * Validates a signup request using SignupHelper.
+     * 
+     * @param signupRequest The signup request to validate
+     * @return true if the request is valid, false otherwise
+     */
+    public boolean validateSignupRequest(SignupRequest signupRequest) {
+        return signupHelper.validateSignupRequest(signupRequest);
+    }
+
+    /**
+     * Simplified signup method equivalent to SignupEndpoints.signup().
+     * 
+     * @param signupRequest The signup request data
+     * @param request The HTTP request
+     * @param response The HTTP response
+     * @return A SignupResponse object with the result of the signup operation
+     */
+    public SignupResponse signup(SignupRequest signupRequest, HttpServletRequest request, HttpServletResponse response) {
+        // Check if user already exists
+        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+            return SignupResponse.failure("User with this email already exists");
+        }
+
+        // Create and save the user
+        User user = createUserFromRequest(signupRequest, request);
+        userRepository.save(user);
+
+        // Set user in session
+        HttpSession session = request.getSession(true);
+        session.setAttribute("userId", user.getId());
+
+        // Set a cookie in the response
+        response.addCookie(createUserCookie(user));
+
+        // Return success response
+        return SignupResponse.success(user.getId(), "/dashboard");
+    }
+
+    /**
      * Processes a signup request from the provided SignupRequest object.
      * 
      * @param signupRequest The signup request data
